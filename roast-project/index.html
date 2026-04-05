@@ -359,7 +359,7 @@ function generateShareCard() {
     ctx.fillText('(roast text unavailable)', 62, 200);
   }
   ctx.fillStyle = '#DDDDDD';
-  ctx.font = '14px monospace';
+  ctx.font = '13px monospace';
   let y = 168;
   const maxY = H - 120;
   lines.slice(0, 10).forEach(line => {
@@ -371,11 +371,11 @@ function generateShareCard() {
       const test = row ? row + ' ' + w : w;
       if (ctx.measureText(test).width > maxW && row) {
         if (y <= maxY) ctx.fillText(row, 62, y);
-        y += 22; row = w;
+        y += 19; row = w;
       } else { row = test; }
     });
-    if (row && y <= maxY) { ctx.fillText(row, 62, y); y += 22; }
-    y += 3;
+    if (row && y <= maxY) { ctx.fillText(row, 62, y); y += 19; }
+    y += 2;
   });
 
   ctx.strokeStyle = '#252525';
