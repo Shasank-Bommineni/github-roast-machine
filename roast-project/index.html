@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GitHub Roast Machine</title>
+<meta name="description" content="Paste any GitHub username and get a brutally honest AI roast of their profile."/>
+<meta property="og:title" content="GitHub Roast Machine"/>
+<meta property="og:description" content="AI roasts your GitHub profile. Try it."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #555;
+    --amber: #EF9F27;
+    --amber-dark: #BA7517;
+    --amber-bg: rgba(239,159,39,0.1);
+    --red: #E24B4A;
+    --green: #639922;
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+  html { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; }
+  body { max-width: 680px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  header { margin-bottom: 40px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--amber); background: var(--amber-bg); border: 0.5px solid rgba(239,159,39,0.25); border-radius: 99px; padding: 4px 12px; margin-bottom: 16px; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 8px; }
+  .subtitle { font-size: 14px; color: var(--text2); font-family: 'JetBrains Mono', monospace; }
+
+  .input-row { display: flex; gap: 10px; margin-bottom: 32px; }
+  input[type="text"] {
+    flex: 1; background: var(--surface); border: 0.5px solid var(--border2);
+    border-radius: var(--radius); padding: 12px 16px; color: var(--text);
+    font-family: 'JetBrains Mono', monospace; font-size: 15px; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type="text"]:focus { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(239,159,39,0.15); }
+  input[type="text"]::placeholder { color: var(--text3); }
+  button.roast-btn {
+    background: transparent; border: 1.5px solid var(--amber-dark);
+    color: var(--amber); font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 14px; padding: 12px 22px; border-radius: var(--radius);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  button.roast-btn:hover:not(:disabled) { background: var(--amber-bg); }
+  button.roast-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .section-label { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 24px; }
+  .stat-box { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px 10px; text-align: center; }
+  .stat-val { font-size: 20px; font-weight: 700; }
+  .stat-lbl { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text2); margin-top: 3px; }
+
+  .lang-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+  .lang-pill { font-size: 11px; font-family: 'JetBrains Mono', monospace; padding: 4px 11px; border-radius: 99px; background: rgba(239,159,39,0.12); color: var(--amber); font-weight: 700; border: 0.5px solid rgba(239,159,39,0.2); }
+
+  .score-section { margin-bottom: 28px; }
+  .score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .score-label { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text2); width: 100px; flex-shrink: 0; }
+  .score-track { flex: 1; height: 5px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 99px; background: var(--amber); transition: width 0.9s cubic-bezier(.4,0,.2,1); }
+  .score-num { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text2); width: 30px; text-align: right; }
+
+  .output-card { background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px; }
+  .output-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 0.5px solid var(--border); }
+  .dots { display: flex; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .file-name { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text3); }
+  .output-body { padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.9; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+
+  .action-row { display: flex; justify-content: flex-end; gap: 8px; }
+  .btn-share {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px;
+    padding: 8px 16px; border-radius: var(--radius); border: 0.5px solid var(--border2);
+    color: var(--text2); background: transparent; cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-share:hover { background: var(--surface2); color: var(--text); }
+
+  .error { color: #E24B4A; font-size: 13px; font-family: 'JetBrains Mono', monospace; padding: 12px 0; }
+  .cursor { display: inline-block; width: 8px; height: 14px; background: var(--amber); animation: blink 1s step-end infinite; vertical-align: text-bottom; }
+  @keyframes blink { 50% { opacity: 0; } }
+  canvas { display: none; }
+
+  footer { margin-top: 60px; text-align: center; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text3); }
+  footer a { color: var(--text2); text-decoration: none; }
+  footer a:hover { color: var(--amber); }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 28px; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .input-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" fill="#EF9F27"/></svg>
+    AI-powered
+  </div>
+  <h1>GitHub Roast Machine</h1>
+  <p class="subtitle">// paste a username. receive judgment.</p>
+</header>
+
+<main>
+  <div class="input-row">
+    <input type="text" id="usernameInput" placeholder="e.g. torvalds" autocomplete="off" spellcheck="false"/>
+    <button class="roast-btn" id="roastBtn" onclick="startRoast()">Roast them</button>
+  </div>
+
+  <div id="statsSection" style="display:none;">
+    <p class="section-label">profile stats</p>
+    <div class="stat-grid" id="statRow"></div>
+    <p class="section-label">languages detected</p>
+    <div class="lang-row" id="langRow"></div>
+  </div>
+
+  <div id="scoreSection" style="display:none;">
+    <p class="section-label">skill scores</p>
+    <div class="score-section" id="scoreWrap"></div>
+  </div>
+
+  <div id="outputSection" style="display:none;">
+    <p class="section-label">ai verdict</p>
+    <div class="output-card">
+      <div class="output-header">
+        <div class="dots">
+          <div class="dot" style="background:#E24B4A;"></div>
+          <div class="dot" style="background:#EF9F27;"></div>
+          <div class="dot" style="background:#639922;"></div>
+        </div>
+        <span class="file-name" id="outputTitle">roast.txt</span>
+        <div style="width:52px;"></div>
+      </div>
+      <div class="output-body" id="outputBody"></div>
+    </div>
+    <div class="action-row">
+      <button class="btn-share" id="shareBtn" onclick="generateShareCard()" style="display:none;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        Download Share Card
+      </button>
+    </div>
+  </div>
+
+  <div id="errorSection" class="error" style="display:none;"></div>
+</main>
+
+<footer>
+  Built with Llama 3.1 via OpenRouter &nbsp;·&nbsp;
+  <a href="https://github.com/Shasank-Bommineni" target="_blank">@Shasank-Bommineni</a>
+</footer>
+
+<canvas id="shareCanvas"></canvas>
+<div id="roastStore" style="display:none;"></div>
+
+<script>
+let roastText = '';
+let currentUser = {};
+let currentScores = {};
+
+async function startRoast() {
+  const username = document.getElementById('usernameInput').value.trim();
+  if (!username) return;
+
+  const btn = document.getElementById('roastBtn');
+  btn.disabled = true;
+  btn.textContent = 'fetching...';
+
+  document.getElementById('statsSection').style.display = 'none';
+  document.getElementById('scoreSection').style.display = 'none';
+  document.getElementById('outputSection').style.display = 'none';
+  document.getElementById('errorSection').style.display = 'none';
+  document.getElementById('shareBtn').style.display = 'none';
+  document.getElementById('outputBody').innerHTML = '';
+  roastText = '';
+
+  try {
+    const uResp = await fetch(`https://api.github.com/users/${username}`);
+    if (!uResp.ok) throw new Error(uResp.status === 404 ? `"${username}" not found on GitHub.` : 'GitHub API error. Try again.');
+    const userData = await uResp.json();
+    currentUser = userData;
+
+    const rResp = await fetch(`https://api.github.com/users/${username}/repos?per_page=30&sort=updated`);
+    const repos = await rResp.json();
+
+    const langCount = {};
+    let totalStars = 0, described = 0;
+    const summaries = repos.slice(0, 15).map(r => {
+      totalStars += r.stargazers_count;
+      if (r.description) described++;
+      if (r.language) langCount[r.language] = (langCount[r.language] || 0) + 1;
+      return `- ${r.name} (${r.language || 'no lang'}, ${r.stargazers_count}★): ${r.description || 'no description'}`;
+    }).join('\n');
+
+    const topLangs = Object.entries(langCount).sort((a, b) => b[1] - a[1]).slice(0, 6).map(e => e[0]);
+    const joined = new Date(userData.created_at).getFullYear();
+    const yearsOn = new Date().getFullYear() - joined;
+
+    document.getElementById('statRow').innerHTML = [
+      { val: userData.public_repos, lbl: 'repos' },
+      { val: totalStars, lbl: 'stars' },
+      { val: userData.followers, lbl: 'followers' },
+      { val: yearsOn + 'y', lbl: 'on github' }
+    ].map(s => `<div class="stat-box"><div class="stat-val">${s.val}</div><div class="stat-lbl">${s.lbl}</div></div>`).join('');
+
+    document.getElementById('langRow').innerHTML = topLangs.length
+      ? topLangs.map(l => `<span class="lang-pill">${l}</span>`).join('')
+      : '<span style="font-size:12px;color:#555;font-family:monospace;">none detected</span>';
+
+    document.getElementById('statsSection').style.display = 'block';
+    document.getElementById('outputSection').style.display = 'block';
+    document.getElementById('outputTitle').textContent = `${username} — roast.txt`;
+    document.getElementById('outputBody').innerHTML = '<span class="cursor"></span>';
+    btn.textContent = 'roasting...';
+
+    const prompt = `You are a brutally funny but genuinely insightful code reviewer. Roast this GitHub profile specifically, not generically.
+
+User: ${userData.login}
+Bio: ${userData.bio || 'none'}
+Repos: ${userData.public_repos} | Stars: ${totalStars} | Followers: ${userData.followers}
+On GitHub: ${yearsOn} years (since ${joined})
+Languages: ${topLangs.join(', ') || 'none'}
+Repos with descriptions: ${described}/${repos.length}
+
+Recent repos:
+${summaries}
+
+Respond ONLY with this exact JSON (no markdown, no backticks, no preamble):
+{
+  "roast": "2-3 punchy specific roast lines",
+  "verdict": "3-4 lines honest breakdown — strengths, gaps, one concrete tip",
+  "scores": {
+    "consistency": 0-100,
+    "documentation": 0-100,
+    "language_depth": 0-100,
+    "community": 0-100
+  }
+}`;
+
+    const response = await fetch('/.netlify/functions/roast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    if (!data.choices?.[0]?.message?.content) throw new Error('Empty response. Try again.');
+    let raw = data.choices[0].message.content;
+    raw = raw.replace(/```json|```/g, '').trim();
+
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch (e) { parsed = { roast: raw, verdict: '', scores: {} }; }
+
+    roastText = (parsed.roast || '') + '\n\n' + (parsed.verdict || '');
+    currentScores = parsed.scores || {};
+
+    document.getElementById('outputBody').innerHTML = '';
+    const fullText = '🔥 THE ROAST\n' + (parsed.roast || '') + '\n\n📊 SKILL VERDICT\n' + (parsed.verdict || '');
+    let i = 0;
+    const chars = fullText.split('');
+    function typeNext() {
+      if (i < chars.length) {
+        document.getElementById('outputBody').textContent += chars[i]; i++;
+        setTimeout(typeNext, chars[i - 1] === '\n' ? 35 : 9);
+        if (i === chars.length) {
+          document.getElementById('roastStore').textContent = fullText;
+          document.getElementById('shareBtn').style.display = 'flex';
+          renderScores(currentScores);
+        }
+      }
+    }
+    typeNext();
+
+  } catch (err) {
+    document.getElementById('errorSection').textContent = '> error: ' + err.message;
+    document.getElementById('errorSection').style.display = 'block';
+    document.getElementById('outputSection').style.display = 'none';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Roast them';
+  }
+}
+
+function renderScores(scores) {
+  if (!Object.keys(scores).length) return;
+  const labels = { consistency: 'consistency', documentation: 'documentation', language_depth: 'lang depth', community: 'community' };
+  document.getElementById('scoreWrap').innerHTML = Object.entries(scores).map(([k, v]) => `
+    <div class="score-row">
+      <span class="score-label">${labels[k] || k}</span>
+      <div class="score-track"><div class="score-fill" id="sf-${k}" style="width:0%"></div></div>
+      <span class="score-num">${Math.round(v)}</span>
+    </div>`).join('');
+  document.getElementById('scoreSection').style.display = 'block';
+  setTimeout(() => {
+    Object.entries(scores).forEach(([k, v]) => {
+      const el = document.getElementById('sf-' + k);
+      if (el) el.style.width = Math.round(v) + '%';
+    });
+  }, 100);
+}
+
+function generateShareCard() {
+  const canvas = document.getElementById('shareCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = 800, H = 420;
+  canvas.width = W; canvas.height = H;
+
+  ctx.fillStyle = '#0D0D0D';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = '#1A1A1A';
+  if (ctx.roundRect) { ctx.roundRect(24, 24, W - 48, H - 48, 16); ctx.fill(); }
+  else { ctx.fillRect(24, 24, W - 48, H - 48); }
+
+  ctx.fillStyle = '#EF9F27';
+  ctx.fillRect(48, 52, 4, 52);
+
+  ctx.fillStyle = '#EF9F27';
+  ctx.font = 'bold 11px monospace';
+  ctx.fillText('GITHUB ROAST MACHINE', 62, 68);
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 30px monospace';
+  ctx.fillText('@' + (currentUser.login || 'unknown'), 62, 98);
+
+  ctx.fillStyle = '#666';
+  ctx.font = '12px monospace';
+  ctx.fillText(`${currentUser.public_repos || 0} repos  ·  ${currentUser.followers || 0} followers`, 62, 120);
+
+  ctx.strokeStyle = '#252525';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(48, 140); ctx.lineTo(W - 48, 140); ctx.stroke();
+
+  const rawText = document.getElementById('roastStore').textContent || '';
+  const cleanText = rawText
+    .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+    .replace(/[\u2600-\u27BF]/g, '')
+    .replace(/THE ROAST|SKILL VERDICT/g, '')
+    .replace(/[^\S\n]+/g, ' ')
+    .trim();
+  const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+  if (!lines.length) {
+    ctx.fillStyle = '#555';
+    ctx.font = '14px monospace';
+    ctx.fillText('(roast text unavailable)', 62, 200);
+  }
+  ctx.fillStyle = '#DDDDDD';
+  ctx.font = '14px monospace';
+  let y = 168;
+  lines.slice(0, 6).forEach(line => {
+    const maxW = W - 120;
+    const words = line.split(' ');
+    let row = '';
+    words.forEach(w => {
+      const test = row ? row + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && row) { ctx.fillText(row, 62, y); y += 22; row = w; }
+      else { row = test; }
+    });
+    if (row) { ctx.fillText(row, 62, y); y += 22; }
+    y += 3;
+  });
+
+  ctx.strokeStyle = '#252525';
+  ctx.beginPath(); ctx.moveTo(48, H - 75); ctx.lineTo(W - 48, H - 75); ctx.stroke();
+
+  const scoreEntries = Object.entries(currentScores).slice(0, 4);
+  const sw = (W - 100) / Math.max(scoreEntries.length, 1);
+  scoreEntries.forEach(([k, v], i) => {
+    const x = 50 + i * sw;
+    ctx.fillStyle = '#444';
+    ctx.font = '9px monospace';
+    ctx.fillText(k.replace('_', ' ').toUpperCase(), x, H - 52);
+    ctx.fillStyle = '#252525';
+    ctx.fillRect(x, H - 42, sw - 24, 5);
+    ctx.fillStyle = '#EF9F27';
+    ctx.fillRect(x, H - 42, (sw - 24) * (Math.round(v) / 100), 5);
+    ctx.fillStyle = '#EF9F27';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText(Math.round(v), x, H - 28);
+  });
+
+  ctx.fillStyle = '#333';
+  ctx.font = '10px monospace';
+  const credit = 'github-roast-machine — Built by Shasank Bommineni';
+  ctx.fillText(credit, W - ctx.measureText(credit).width - 50, H - 30);
+
+  const link = document.createElement('a');
+  link.download = `roast-${currentUser.login || 'github'}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+document.getElementById('usernameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startRoast();
+});
+</script>
+</body>
+</html>
