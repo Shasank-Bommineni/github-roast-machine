@@ -316,7 +316,7 @@ function renderScores(scores) {
 function generateShareCard() {
   const canvas = document.getElementById('shareCanvas');
   const ctx = canvas.getContext('2d');
-  const W = 800, H = 420;
+  const W = 800, H = 520;
   canvas.width = W; canvas.height = H;
 
   ctx.fillStyle = '#0D0D0D';
@@ -361,16 +361,20 @@ function generateShareCard() {
   ctx.fillStyle = '#DDDDDD';
   ctx.font = '14px monospace';
   let y = 168;
-  lines.slice(0, 6).forEach(line => {
+  const maxY = H - 120;
+  lines.slice(0, 10).forEach(line => {
+    if (y > maxY) return;
     const maxW = W - 120;
     const words = line.split(' ');
     let row = '';
     words.forEach(w => {
       const test = row ? row + ' ' + w : w;
-      if (ctx.measureText(test).width > maxW && row) { ctx.fillText(row, 62, y); y += 22; row = w; }
-      else { row = test; }
+      if (ctx.measureText(test).width > maxW && row) {
+        if (y <= maxY) ctx.fillText(row, 62, y);
+        y += 22; row = w;
+      } else { row = test; }
     });
-    if (row) { ctx.fillText(row, 62, y); y += 22; }
+    if (row && y <= maxY) { ctx.fillText(row, 62, y); y += 22; }
     y += 3;
   });
 
