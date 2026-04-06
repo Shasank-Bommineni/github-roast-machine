@@ -23,7 +23,7 @@ exports.handler = async (event) => {
         'X-Title': 'GitHub Roast Machine'
       },
       body: JSON.stringify({
-        model: 'mistralai/mistral-7b-instruct:free',
+        model: 'openrouter/free',
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
